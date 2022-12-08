@@ -1,0 +1,123 @@
+DESCRIPTION
+MY  PROJECT AIMS TO DRAW CONCLUSIONS BASED ON PATTERNS FOUND IN PAST SPORT DATA.
+THE ANALYSIS TARGETS FITNESS-ORIENTATED FIRMS IN HOPES OF HELPING THEM UNDERSTAND KEY INSIGHTS ABOUT HOW TO ATTRACT AND MAINTAIN THEIR CLIENT BASE
+MY AUDIENCE FOR THIS PROJECT WOULD NOT BE LIMITED TO FITNESS ORGANISATIONS, BUT ALSO SPORTS PLAYERS AND FITNESS COUCHES AS WELL AS ORDIANRY PUBLIC USE.
+
+WHICH CLIENT DID YOU SELECT AND WHY?
+I CHOSE THE SPORTS STATS CLIENT SINCE I HAVE A STRONG INTEREST IN SPORTS AND FITNESS AND WANTED TO DEVELOP MEANINGFUL INSIGHTS AND PATTERNS ABOUT DIFFERENT SPORTS.
+DESCRIBE THE STEPS YOU TOOK TO IMPORT AND CLEAN THE DATA.
+I IMPORTED THE DATA USING DATABRICKS BY FIRST ATTACHING  TO MY CLUSTER, THEN MOUNTING THE DATA AND CREATING A  DATABASE AND TABLE .
+SINCE THE DATASET HAS NAN VALUES, I DID NOT TAKE ANY STEPS TO CLEAN THE DATA AS THAT WOULD BE FALSIFICATION OF DATA.
+
+
+--QUESTION 1 : IS THERE A CORRELATION BETWEEN AGE AND AWARDS WON?
+--HYPOTHESIS : THE OLDER THEY PLAYER, THE HIGHER THE PROBABLITY THAT THEY HAVE A MEDAL, AND THAT PROBABLITY WILL DECREASE WITH THE AGE OF THE PLAYER.
+--APPROACH : I first wanted to filter out any null values in the medal column. I then wanted to generate a count of how many medals were won 
+in general and to then plot them against age.
+
+
+SELECT age,
+       SUM(CASE
+             WHEN medal == 'NA' THEN 0
+             ELSE 1
+           END) AS sum_medal_for_age
+FROM   ae
+GROUP  BY age
+ORDER  BY age; 
+
+--CONCLUSION : The data seems to follow a normal distribution which suggests that players who are in the age range of 19 to 30 have won the most medals which proves 
+the initial hypothesis.
+
+--QUESTION 2 : WHICH COUNTRY HAS WON THE MOST MEDALS?
+--HYPOTHESIS : THE COUNTRY WITH THE MOST PLAYERS HAS THE MOST MEDALS.
+--APPROACH : I first wanted to filter out any null values in the medal column. I then wanted to generate a count of how many people were in each region 
+in general and to then plot them against the number of people who won medals in that region.
+
+
+SELECT Count(id) AS player_count,
+       SUM(CASE
+             WHEN medal == 'NA' THEN 1
+             ELSE 0
+           END)  AS sum_medal_for_region,
+       r.region
+FROM   ae
+       left join r
+              ON ae.noc = r.noc
+GROUP  BY r.region
+ORDER  BY player_count DESC 
+
+--CONCLUSION : The data seems to follow a inear pattern which suggests that the countries with the most players also have the most medals, which proves the initial
+hypothesis.
+
+--QUESTION 3 : IS THERE A CORRELATION BETWEEN GENDER AND SPORT? 
+--HYPOTHESIS : THERE ARE MORE MEN THAN WOMEN WHO PARTICIPATED IN SPORTS.
+--APPROACH : I fist generated a count of how many people of each gender played each sport and plotted them against 
+each other.
+
+SELECT sport,
+       Sum(CASE
+             WHEN sex == 'M' THEN 1
+             ELSE 0
+           end) AS male_count,
+       Sum(CASE
+             WHEN sex == 'F' THEN 1
+             ELSE 0
+           end) AS female_count
+FROM   ae
+GROUP  BY sport
+ORDER  BY male_count DESC,
+          female_count DESC
+LIMIT  100
+
+--CONCLUSION : The data seems to suggest that the hypothesis indeed true, more men participate in certain sports.
+
+--QUESTION 4 : IS THERE A CORRELATION BETWEEN BMI AND WHETHER OR NOT A PLAYER HAS A MEDAL?
+--HYPOTHESIS : THERE IS A CORRELATION.
+--APPROACH : I fist filter out all the null values for height and weight, then computed the BMI for each player, then checked to see if they have won an award.
+
+SELECT medal,
+       Round(( weight / height / height ) * 10000, 1) AS BMI
+FROM   ae
+WHERE  weight != 'NA'
+       AND height != 'NA'
+       AND medal != 'NA'
+GROUP  BY medal,
+          BMI
+ORDER  BY BMI DESC 
+
+--CONCLUSION : The data seems to suggest that the hypothesis indeed true.
+
+--QUESTION 5 : DOES THE BMI FOR MALE ATHLETES FOLLOW A NORMAL DISTRIBUTION?
+--HYPOTHESIS : YES
+--APPROACH : I fist filter out all the null values for height and weight, then computed the BMI for each male player.
+
+WITH cte AS
+(
+       SELECT sex,
+              Round((weight/height/height) * 10000,1) AS BMI
+       FROM   ae
+       WHERE  weight != 'NA'
+       AND    height != 'NA' )
+SELECT   BMI,
+         sum(
+         CASE
+                  WHEN sex == 'M' THEN 1
+                  ELSE 0
+         END) AS male_count
+FROM     cte
+GROUP BY sex,
+         BMI
+ORDER BY male_count DESC limit 100
+
+
+--CONCLUSION : The hypothesis seems to be correct.
+
+NEXT STEPS
+FITNESS-ORIENTATED FIRMS CAN TAKE THESE INSIGHTS AND STRATGISE THEIR PRODUCT LAUNCHES TO GEAR TOWARDS THEIR TARGET MARKET.
+FOR EXAMPLE: 
+CREATING A MARKETING CAMPAIGN THAT USES THE BMI DATA TO PROMOTE THEIR PRODUCT TO THEIR HEALTH CONSCIENCE CLIENT BASE .
+FITNESS COUCHES ADJUSTING THEIR PLAYERS’ TRAINING PROGRAM TO TAKE INTO ACCOUNT GENDER AND AGE.
+
+
+
+
